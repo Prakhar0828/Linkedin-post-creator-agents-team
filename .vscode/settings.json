@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/writer_agent/.venv/bin/python",
+  "python.venvPath": "${workspaceFolder}/writer_agent",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.analysis.diagnosticMode": "workspace"
+}

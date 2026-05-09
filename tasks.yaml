@@ -1,0 +1,76 @@
+# LinkedIn writer crew — task definitions (matches linkedin_writer_agent.py).
+# `agent:` must match a key in linkedin_writer_agents.yaml.
+# `context:` lists prior task keys (CrewAI @CrewBase style when you wire YAML to a crew class).
+
+task_web_research:
+  description: |
+    Research the topic '{topic}' on the web.
+
+    Find:
+    - 3-5 key insights or trends about this topic
+    - Any interesting statistics or data points
+    - Expert opinions or hot takes
+    - Real-world examples or case studies
+
+    Focus on recent, high-quality sources. This research will be used to write a LinkedIn post.
+  expected_output: >
+    A research brief with 3-5 key insights about {topic}, including relevant stats,
+    expert opinions, and examples. Each insight should be a short paragraph.
+  agent: web_researcher
+
+task_youtube_research:
+  description: |
+    Analyze the YouTube video at {youtube_video_url} about the topic '{topic}'.
+
+    Extract:
+    - The speaker's main argument or thesis
+    - 3 most valuable takeaways from the video
+    - Any memorable quotes or frameworks mentioned
+    - Practical advice or actionable tips shared
+
+    This research will be used to write a LinkedIn post.
+  expected_output: >
+    A summary of the video's key insights including the main argument, top 3 takeaways,
+    notable quotes, and actionable advice.
+  agent: youtube_researcher
+
+task_write_post:
+  description: |
+    Using the web research and YouTube video insights provided to you, write a LinkedIn post about '{topic}'.
+
+    Post requirements:
+    - Start with a strong hook (first line should stop the scroll)
+    - Keep it between 150-300 words
+    - Use short paragraphs (1-2 sentences each)
+    - Include insights from BOTH the web research and the video
+    - End with a question or call-to-action to drive comments
+    - Add 3-5 relevant hashtags at the end
+    - Tone: professional but conversational, opinionated, not generic
+
+    Do NOT use emojis excessively. Max 2-3 emojis in the entire post.
+  expected_output: >
+    A ready-to-publish LinkedIn post between 150-300 words, with a strong hook,
+    insights from research, and a closing CTA. Include hashtags at the end.
+  agent: linkedin_writer
+  context:
+    - task_web_research
+    - task_youtube_research
+  output_file: linkedin_post.md
+
+task_create_image:
+  description: |
+    Based on the LinkedIn post that was written, create an image that would be the perfect visual accompaniment.
+
+    The image should:
+    - Visually represent the core theme of the post
+    - Be professional and suitable for LinkedIn
+    - Be eye-catching enough to stop someone from scrolling
+    - NOT contain any text or words in the image
+    - Use a clean, modern aesthetic
+
+    Generate a detailed prompt for DALL-E and create the image.
+  expected_output: >
+    The URL or file path of the generated image, along with the DALL-E prompt that was used to create it.
+  agent: image_creator
+  context:
+    - task_write_post

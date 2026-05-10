@@ -30,6 +30,20 @@ You will be prompted for:
 
 Output is written to `linkedin_post.md` by the crew configuration.
 
+The LinkedIn writer loads **`Knowledge/*.txt` and `*.md`** as CrewAI `TextFileKnowledgeSource` RAG. Paths are passed as `pathlib.Path` objects (CrewAI joins string paths under a `knowledge/` prefix, which breaks absolute paths).
+
+## Chat UI (Figma-aligned)
+
+Vite + React app in `frontend/` (layout matches [Figma — LinkedIn Writer Chat UI](https://www.figma.com/design/8dpe1V7gyYEuMkQqDtjbL2)). Responses are **demo text** until you connect an API.
+
+```bash
+cd frontend
+npm install   # first time
+npm run dev
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`).
+
 ## Tests
 
 There is no dedicated `pytest` suite at the repository root for `main.py`. The nested `writer_agent` package follows CrewAI’s standard layout (`writer_agent/README.md`).
@@ -40,3 +54,4 @@ There is no dedicated `pytest` suite at the repository root for `main.py`. The n
 - `linkedin_crew.py` — shared crew utilities / imports as used by your setup  
 - `Knowledge/` — example post text files for writer grounding  
 - `skills/` — CrewAI skill folders (e.g. LinkedIn writing)  
+- `frontend/` — React chat UI for topic → draft preview  

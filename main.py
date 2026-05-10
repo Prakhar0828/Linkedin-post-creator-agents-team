@@ -1,8 +1,27 @@
-from crewai import Agent, Task, Crew, Process, LLM
+"""LinkedIn writer crew: interactive prompts for topic and YouTube URL, then run.
+
+Run with ``python main.py``. Prompts on stdin; the crew writes task outputs (e.g.
+``linkedin_post.md``) per Task configuration. Past posts under ``Knowledge/`` are
+embedded as agent knowledge (RAG) for the LinkedIn writer.
+"""
+
+from pathlib import Path
+
+from crewai import Agent, Task, Crew, Process
+from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
 from crewai_tools import SerperDevTool, YoutubeVideoSearchTool, DallETool
 
 from linkedin_crew import image_creator
 
+_KNOWLEDGE_DIR = Path(__file__).resolve().parent / "Knowledge"
+_knowledge_paths = sorted(_KNOWLEDGE_DIR.glob("*.txt")) + sorted(_KNOWLEDGE_DIR.glob("*.md"))
+_knowledge_paths = [p.resolve() for p in _knowledge_paths if p.is_file()]
+# CrewAI prepends KNOWLEDGE_DIRECTORY to *str* paths only; pass Path objects so absolute paths work.
+_linkedin_post_knowledge = (
+    [TextFileKnowledgeSource(file_paths=_knowledge_paths)]
+    if _knowledge_paths
+    else []
+)
 
 # Define Tools
 web_research_tool = SerperDevTool()
@@ -38,8 +57,11 @@ linkedin_writer_agent = Agent(
     millions of impressions. You know that great LinkedIn posts start with a killer
     hook in the first line, use short punchy paragraphs, tell a story or share a
     strong opinion, and end with a clear takeaway or question. You never write
-    generic corporate fluff — every post has personality and edge.""",
+    generic corporate fluff — every post has personality and edge. You have access
+    to a knowledge base of your past LinkedIn posts: query it for tone, pacing, hook
+    patterns, and phrasing—then write something new about {topic}, not a copy.""",
     skills=["/Users/prakhar/Documents/Knowledge Base/Linked-Writer-Agent/skills"],
+    knowledge_sources=_linkedin_post_knowledge,
     verbose=True
 )
 
@@ -91,6 +113,10 @@ youtube_research_task = Task(
 linkedin_writing_task = Task(
     description="""Using the web research and YouTube video insights provided to you, write a LinkedIn post about '{topic}'.
 
+    Use your knowledge base (RAG) of past LinkedIn posts in the Knowledge folder: retrieve
+    relevant excerpts to match voice, structure, and hook style—facts and claims must still
+    come from the web and YouTube research below, not from inventing details from old posts.
+
     Post requirements:
     - Start with a strong hook (first line should stop the scroll)
     - Keep it between 150-300 words
@@ -140,6 +166,11 @@ crew = Crew(
 
 
 def main() -> None:
+    """Prompt for topic and YouTube URL, run the crew, print the final result string.
+
+    Side effects: reads stdin for two fields; runs ``crew.kickoff`` (LLM/tool calls,
+    file outputs from tasks); prints ``result.raw`` to stdout.
+    """
     topic = input("Topic for the LinkedIn post: ").strip()
     while not topic:
         topic = input("Topic cannot be empty. Try again: ").strip()

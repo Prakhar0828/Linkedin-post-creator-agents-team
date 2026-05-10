@@ -1,19 +1,5 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-_env_file = Path(__file__).resolve().parent / "writer_agent" / ".env"
-load_dotenv(_env_file)
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-SERPER_API_KEY = os.getenv("SERPER_API_KEY")
-MODEL = os.getenv("MODEL")
-
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, YoutubeVideoSearchTool
-
-from crew import web_research_task, youtube_research_task
 
 
 # Define Tools
@@ -28,6 +14,7 @@ web_researcher_agent = Agent(
     information from the internet. You focus on finding unique insights, statistics,
     expert opinions, and real-world examples that would make great talking points for
     a LinkedIn post. You ignore fluff and focus on substance.""",
+    tools = [web_research_tool]
 )
 youtube_research_agent = Agent(
     role = "YouTube Researcher",
@@ -35,7 +22,10 @@ youtube_research_agent = Agent(
     backstory = """You are an expert at analyzing video content and extracting the key takeaways
     that audiences find most valuable. You focus on unique perspectives, memorable
     quotes, frameworks, and actionable advice shared in the video. You always note
-    the speaker's main argument and supporting points."""
+    the speaker's main argument and supporting points.""",
+    tools = [youtube_research_tool],
+    verbose=True
+
 )
 
 linkedin_writer_agent = Agent(
@@ -75,7 +65,7 @@ youtube_research_task = Task(
     This research will be used to write a LinkedIn post.""",
     expected_output = """A summary of the video's key insights including the main argument, top 3 takeaways,
     notable quotes, and actionable advice.""",
-    agent = youtube_research_agent
+    agent = youtube_research_agent,
 )
 
 linkedin_writing_task = Task(
@@ -103,9 +93,10 @@ linkedin_writing_task = Task(
 
 crew = Crew(
     agents = [web_researcher_agent, youtube_research_agent, linkedin_writer_agent],
-    tasks=[web_research_task, youtube_research_task, linkedin_writing_task],
+    tasks=[web_research_task, linkedin_writing_task],
     process = Process.sequential,
+    verbose=True
 )
 # Run the Crew
-result = crew.kickoff(inputs={"topic":"AI Agents", "youtube_video_url":"https://www.youtube.com/watch?v=baoTpwmIBbU"})
+result = crew.kickoff(inputs={"topic":"AI Agents", "youtube_video_url":"https://www.youtube.com/watch?v=y-cq_Qo4zVo&list=PLvQWpZ46MVvgUUUBxnqLAu-JzA-6QA1o2"})
 print(result.raw)

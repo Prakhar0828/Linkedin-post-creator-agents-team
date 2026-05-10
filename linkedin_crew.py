@@ -1,8 +1,9 @@
 # Imports
 from pathlib import Path
 
-from crewai import Agent, Task, Crew, Process
-from crewai_tools import SerperDevTool, YoutubeVideoSearchTool
+from crewai import Agent, Task, Crew, Process, tools
+from crewai_tools import SerperDevTool, YoutubeVideoSearchTool, DirectorySearchTool, DallETool
+
 
 # Parent directory that contains one subfolder per skill (each with SKILL.md).
 _SKILLS_ROOT = Path(__file__).resolve().parent / "skills"
@@ -10,6 +11,12 @@ _SKILLS_ROOT = Path(__file__).resolve().parent / "skills"
 # Define tools
 youtube_research_tool = YoutubeVideoSearchTool()
 web_research_tool = SerperDevTool()
+dalle_tool = DallETool(
+    model="dall-e-3",
+    size="1024x1024",
+    quality="standard",
+    n=1
+)
 
 # Define Agents
 youtube_researcher_agent = Agent(
@@ -40,9 +47,24 @@ linkedin_writer_agent = Agent(
     strong opinion, and end with a clear takeaway or question. You never write
     generic corporate fluff — every post has personality and edge.""",
     verbose = True,
-    skills=[_SKILLS_ROOT],
+    skills=["/Users/prakhar/Documents/Knowledge Base/Linked-Writer-Agent/skills"],
 )
 
+image_creator = Agent(
+    role="LinkedIn Post Image Creator",
+    goal="Create a visually striking image that complements the LinkedIn post about {topic}",
+    backstory=(
+        "You are a creative director who specializes in creating "
+        "scroll-stopping visuals for social media. You know that "
+        "LinkedIn images should be professional yet eye-catching, "
+        "and should visually represent the core idea of the post. "
+        "You create clean, modern images that make people stop "
+        "scrolling and read the post."
+    ),
+    tools=[dalle_tool],
+    verbose=True,
+    allow_delegation=False
+)
 # Define Tasks
 youtube_research_task = Task(
     description="""Analyze the YouTube video at {youtube_video_url} about the topic '{topic}'.
@@ -91,14 +113,34 @@ linkedin_writing_task = Task(
     insights from research, and a closing CTA. Include hashtags at the end.""",
     agent = linkedin_writer_agent,
     output_file = "linkedin_post.md",
-    context = [web_research_task, youtube_research_task]
+    context = [web_research_task]
 )
 
+task_create_image = Task(
+    description=(
+        "Based on the LinkedIn post that was written, create an image "
+        "that would be the perfect visual accompaniment.\n\n"
+        "The image should:\n"
+        "- Visually represent the core theme of the post\n"
+        "- Be professional and suitable for LinkedIn\n"
+        "- Be eye-catching enough to stop someone from scrolling\n"
+        "- NOT contain any text or words in the image\n"
+        "- Use a clean, modern aesthetic\n\n"
+        "Generate a detailed prompt for DALL-E and create the image."
+    ),
+    expected_output=(
+        "The URL or file path of the generated image, along with "
+        "the DALL-E prompt that was used to create it."
+    ),
+    agent=image_creator,
+    context=[linkedin_writing_task]
+)
 # Define the team/crew
 crew = Crew(
-    agents = [web_researcher_agent, youtube_researcher_agent, linkedin_writer_agent],
-    tasks = [web_research_task, youtube_research_task, linkedin_writing_task],
+    agents = [web_researcher_agent, youtube_researcher_agent, linkedin_writer_agent, image_creator],
+    tasks = [web_research_task, linkedin_writing_task, task_create_image],
     process = Process.sequential,
+    verbose=True,
 )
 
 # Run the crew

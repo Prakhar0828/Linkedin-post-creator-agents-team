@@ -1,10 +1,13 @@
-from crewai import Agent, Task, Crew, Process
-from crewai_tools import SerperDevTool, YoutubeVideoSearchTool
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai_tools import SerperDevTool, YoutubeVideoSearchTool, DallETool
+
+from linkedin_crew import image_creator
 
 
 # Define Tools
 web_research_tool = SerperDevTool()
 youtube_research_tool = YoutubeVideoSearchTool()
+image_creator_tool = DallETool()
 
 # Define Agents
 web_researcher_agent = Agent(
@@ -14,7 +17,7 @@ web_researcher_agent = Agent(
     information from the internet. You focus on finding unique insights, statistics,
     expert opinions, and real-world examples that would make great talking points for
     a LinkedIn post. You ignore fluff and focus on substance.""",
-    tools = [web_research_tool]
+    tools = [web_research_tool],
 )
 youtube_research_agent = Agent(
     role = "YouTube Researcher",
@@ -24,7 +27,7 @@ youtube_research_agent = Agent(
     quotes, frameworks, and actionable advice shared in the video. You always note
     the speaker's main argument and supporting points.""",
     tools = [youtube_research_tool],
-    verbose=True
+    verbose=True,
 
 )
 
@@ -36,8 +39,25 @@ linkedin_writer_agent = Agent(
     hook in the first line, use short punchy paragraphs, tell a story or share a
     strong opinion, and end with a clear takeaway or question. You never write
     generic corporate fluff — every post has personality and edge.""",
+    skills=["/Users/prakhar/Documents/Knowledge Base/Linked-Writer-Agent/skills"],
+    verbose=True
 )
 
+image_creator = Agent(
+    role="LinkedIn Post Image Creator",
+    goal="Create a visually striking image that complements the LinkedIn post about {topic}",
+    backstory=(
+        "You are a creative director who specializes in creating "
+        "scroll-stopping visuals for social media. You know that "
+        "LinkedIn images should be professional yet eye-catching, "
+        "and should visually represent the core idea of the post. "
+        "You create clean, modern images that make people stop "
+        "scrolling and read the post."
+    ),
+    tools=[image_creator_tool],
+    verbose=True,
+    allow_delegation=False
+)
 # Define Tasks
 web_research_task = Task(
     description="""Research the topic '{topic}' on the web.
@@ -89,14 +109,53 @@ linkedin_writing_task = Task(
     context = [web_research_task, youtube_research_task]
 )
 
+
+task_create_image = Task(
+    description=(
+        "Based on the LinkedIn post that was written, create an image "
+        "that would be the perfect visual accompaniment.\n\n"
+        "The image should:\n"
+        "- Visually represent the core theme of the post\n"
+        "- Be professional and suitable for LinkedIn\n"
+        "- Be eye-catching enough to stop someone from scrolling\n"
+        "- NOT contain any text or words in the image\n"
+        "- Use a clean, modern aesthetic\n\n"
+        "Generate a detailed prompt for DALL-E and create the image."
+    ),
+    expected_output=(
+        "The URL or file path of the generated image, along with "
+        "the DALL-E prompt that was used to create it."
+    ),
+    agent=image_creator,
+    context=[linkedin_writing_task]
+)
 # Define Crew
 
 crew = Crew(
-    agents = [web_researcher_agent, youtube_research_agent, linkedin_writer_agent],
-    tasks=[web_research_task, linkedin_writing_task],
+    agents = [web_researcher_agent, youtube_research_agent, linkedin_writer_agent, image_creator],
+    tasks=[web_research_task, linkedin_writing_task, task_create_image],
     process = Process.sequential,
     verbose=True
 )
-# Run the Crew
-result = crew.kickoff(inputs={"topic":"AI Agents", "youtube_video_url":"https://www.youtube.com/watch?v=y-cq_Qo4zVo&list=PLvQWpZ46MVvgUUUBxnqLAu-JzA-6QA1o2"})
-print(result.raw)
+
+
+def main() -> None:
+    topic = input("Topic for the LinkedIn post: ").strip()
+    while not topic:
+        topic = input("Topic cannot be empty. Try again: ").strip()
+
+    youtube_video_url = input("YouTube video URL: ").strip()
+    while not youtube_video_url:
+        youtube_video_url = input("YouTube URL cannot be empty. Try again: ").strip()
+
+    result = crew.kickoff(
+        inputs={
+            "topic": topic,
+            "youtube_video_url": youtube_video_url,
+        }
+    )
+    print(result.raw)
+
+
+if __name__ == "__main__":
+    main()

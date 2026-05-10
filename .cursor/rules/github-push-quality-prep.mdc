@@ -1,0 +1,13 @@
+---
+description: Before git push or GitHub deploy, run README/tests/docs prep per github-deploy-quality-prep skill unless waived.
+alwaysApply: true
+---
+
+# GitHub push / deploy — quality prep
+
+When the user asks to **push to GitHub**, **deploy**, **publish to a remote repository**, **ship to origin**, or **open a release after a push**:
+
+1. **Read** the skill at `/Users/prakhar/.cursor/skills/github-deploy-quality-prep/SKILL.md` and follow its checklist.
+2. **Do not** `git commit` or `git push` until README is reviewed or enriched (for app-shaped repos), unit tests are added or updated for touched behavior and the project test command has been run successfully, and docstrings or module docs are updated for public or non-obvious APIs where needed — **unless** the user explicitly waives (e.g. hotfix-only, docs-only), per that skill.
+3. **Never** commit secrets, `.env` contents, or API keys.
+4. Use a clear commit message; obtain explicit user approval before push when session rules require it.
